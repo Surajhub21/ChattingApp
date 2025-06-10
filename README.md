@@ -1,10 +1,10 @@
 
-#🔥 RealTime Chatting Application
+# RealTime Chatting Application 🔥
 
 🚀 This project is a real-time chat application using Spring Boot WebSocket and STOMP. Users can create or join different rooms, send messages instantly, and share room links for inviting others to the room 🙌. The app features dynamic URL-based rooms, session tracking, and a clean HTML/CSS frontend for seamless user interaction and real-time communication.
 
 
-## Features
+## Features 📤
 
 - RealTime Chatting Response using WebSocket 🔌
 - Create Different Rooms
@@ -18,9 +18,9 @@ I learn how Websocket is worked internally. How it differ from REST APIs. This i
 Main thing I appriciate truly that this concept helo me how real world realtime application works.
 
 
-##🛠️ Tech Stack
+## Tech Stack 🛠️
 
-**Server:** Spring Boot, Java , STOP/SOCKETJS
+**Server:** Spring Boot 🔥, Java , STOP/SOCKETJS
 
 **Client:** HTML, CSS, JS(SocketJS) 🔌
 
