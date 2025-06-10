@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>WebSocket Chat App</title>
+    <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f4;
+          margin: 0;
+          padding: 20px;
+        }
+
+        .user-container {
+          max-width: 400px;
+          margin: 100px auto;
+          padding: 20px;
+          border: 1px solid #ccc;
+          border-radius: 10px;
+          background-color: #f9f9f9;
+          text-align: center;
+        }
+
+        .user-form input {
+          width: 90%;
+          padding: 10px;
+          margin: 10px 0;
+          border-radius: 5px;
+          border: 1px solid #aaa;
+        }
+
+        .user-form button {
+          padding: 10px 20px;
+          border: none;
+          background-color: #007bff;
+          color: white;
+          border-radius: 5px;
+          cursor: pointer;
+          font-weight: bold;
+        }
+
+        .user-form button:hover {
+          background-color: #0056b3;
+        }
+
+        .chat-container {
+          max-width: 600px;
+          margin: auto;
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+          text-align: center;
+        }
+
+        .messages {
+          height: 300px;
+          overflow-y: auto;
+          border: 1px solid #ccc;
+          padding: 10px;
+          margin-bottom: 10px;
+          list-style: none;
+        }
+
+        .chat-message, .event-message {
+          margin-bottom: 10px;
+        }
+
+        .input-group {
+          display: flex;
+        }
+
+        input[type="text"] {
+          flex-grow: 1;
+          padding: 10px;
+          border-radius: 4px;
+          border: 1px solid #ccc;
+        }
+
+        button {
+          padding: 10px 15px;
+          border-radius: 4px;
+          border: none;
+          background-color: #28a745;
+          color: white;
+          cursor: pointer;
+        }
+
+        button:hover {
+          background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+<div class="user-container">
+    <h2>Join or Create Room</h2>
+    <form id="user-form" class="user-form">
+        <input type="text" id="name" placeholder="Type your Name" autocomplete="off" required />
+        <input type="text" id="room" placeholder="Type Room Name" autocomplete="off" required />
+        <button type="submit">Join Room</button>
+    </form>
+</div>
+
+<div class="chat-container" hidden>
+    <h2>Chat Room</h2>
+    <ul class="messages" id="messages"></ul>
+
+    <form id="chat-form" class="input-group">
+        <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off" required />
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+<!-- Add SockJS and StompJS libraries -->
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+<script>
+    'use strict';
+
+    let username = null;
+    let room = null;
+    let stompClient = null;
+
+    const usernameForm = document.querySelector("#user-form");
+    const messageForm = document.querySelector('#chat-form');
+    const messageInput = document.querySelector('#message-input');
+    const messageArea = document.querySelector('#messages');
+
+    const chatPage = document.querySelector('.chat-container');
+    const userPage = document.querySelector('.user-container');
+
+    usernameForm.addEventListener('submit', connectToRoom);
+    messageForm.addEventListener('submit', sendMessage);
+
+    function connectToRoom(event) {
+      event.preventDefault();
+
+      username = document.querySelector('#name').value.trim();
+      room = document.querySelector('#room').value.trim();
+
+      if (!username || !room) return;
+
+      const socket = new SockJS('/ws');
+      stompClient = Stomp.over(socket);
+
+      stompClient.connect({}, onConnected, onError);
+    }
+
+    function onConnected() {
+      userPage.hidden = true;
+      chatPage.hidden = false;
+
+      stompClient.subscribe(`/topic/${room}`, onMessageReceived);
+
+      stompClient.send(`/app/chat/${room}/addUser`, {}, JSON.stringify({
+        sender: username,
+        type: 'JOIN'
+      }));
+    }
+
+    function onError(error) {
+      alert("WebSocket connection failed: " + error);
+    }
+
+    function sendMessage(event) {
+      event.preventDefault();
+
+      const content = messageInput.value.trim();
+      if (!content || !stompClient) return;
+
+      const chatMessage = {
+        sender: username,
+        content: content,
+        type: 'CHAT'
+      };
+
+      stompClient.send(`/app/chat/${room}/sendMessage`, {}, JSON.stringify(chatMessage));
+      messageInput.value = '';
+    }
+
+    function onMessageReceived(payload) {
+      const message = JSON.parse(payload.body);
+      const messageElement = document.createElement('li');
+
+      if (message.type === 'JOIN') {
+        messageElement.textContent = `${message.sender} joined the room`;
+        messageElement.classList.add('event-message');
+      } else if (message.type === 'LEAVE') {
+        messageElement.textContent = `${message.sender} left the room`;
+        messageElement.classList.add('event-message');
+      } else {
+        messageElement.classList.add('chat-message');
+
+        const nameSpan = document.createElement('strong');
+        nameSpan.textContent = message.sender + ": ";
+        messageElement.appendChild(nameSpan);
+
+        const textNode = document.createTextNode(" " + message.content);
+        messageElement.appendChild(textNode);
+      }
+
+      messageArea.appendChild(messageElement);
+      messageArea.scrollTop = messageArea.scrollHeight;
+    }
+</script>
+
+</body>
+</html>

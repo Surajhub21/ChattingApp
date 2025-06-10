@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Join or Create Chat Room</title>
+    <style>
+        body {
+          font-family: 'Segoe UI', sans-serif;
+          background-color: #f0f2f5;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          margin: 0;
+        }
+
+        .container {
+          background: white;
+          padding: 30px;
+          border-radius: 12px;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+          text-align: center;
+          width: 300px;
+        }
+
+        h2 {
+          margin-bottom: 20px;
+          color: #333;
+        }
+
+        input[type="text"] {
+          width: 90%;
+          padding: 10px;
+          margin-bottom: 20px;
+          border: 1px solid #ccc;
+          border-radius: 6px;
+          font-size: 16px;
+        }
+
+        .button-group {
+          display: flex;
+          justify-content: space-between;
+        }
+
+        button {
+          width: 48%;
+          padding: 10px;
+          border: none;
+          background-color: #007bff;
+          color: white;
+          font-size: 15px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+          background-color: #0056b3;
+        }
+
+        .error {
+          color: red;
+          margin-top: 10px;
+          font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="text" style="display : block">
+
+        <h6>Created by Suraj Mondal</h6>
+        <h2>Enter Room Name</h2>
+
+    </div>
+    <input type="text" id="roomName" placeholder="Room name" required />
+    <div class="button-group">
+        <button onclick="createRoom()">Create</button>
+        <button onclick="joinRoom()">Join</button>
+    </div>
+    <div class="error" id="error-msg"></div>
+</div>
+
+<script>
+    function getRoomName() {
+      const roomInput = document.getElementById('roomName');
+      const room = roomInput.value.trim();
+      const errorMsg = document.getElementById('error-msg');
+
+      if (!room) {
+        errorMsg.textContent = 'Room name is required!';
+        return null;
+      }
+
+      errorMsg.textContent = '';
+      return room;
+    }
+
+    function createRoom() {
+      const room = getRoomName();
+      if (room) {
+        // Optional: Call backend API to "create" the room here
+        window.location.href = `/chat/${room}`;
+      }
+    }
+
+    function joinRoom() {
+      const room = getRoomName();
+      if (room) {
+        // Optional: You can call backend to check if room exists
+        window.location.href = `/chat/${room}`;
+      }
+    }
+</script>
+
+</body>
+</html>

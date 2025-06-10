@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Room Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        body {
+          font-family: Arial, sans-serif;
+          background: #eef2f3;
+          margin: 0;
+          padding: 0;
+        }
+
+        .centered {
+          max-width: 500px;
+          margin: 80px auto;
+          background: white;
+          padding: 25px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .hidden {
+          display: none;
+        }
+
+        input[type="text"] {
+          width: 90%;
+          padding: 12px;
+          margin-bottom: 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+        }
+
+        button {
+          padding: 10px 20px;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          font-weight: bold;
+          cursor: pointer;
+        }
+
+        button:hover {
+          background: #0056b3;
+        }
+
+        ul.messages {
+          list-style: none;
+          padding: 0;
+          height: 300px;
+          overflow-y: auto;
+          border: 1px solid #ccc;
+          margin-bottom: 10px;
+        }
+
+        .chat-message, .event-message {
+          margin: 5px 0;
+          padding: 5px;
+        }
+
+        .chat-message strong {
+          color: #007bff;
+        }
+
+        .event-message {
+          color: gray;
+          font-style: italic;
+        }
+
+        .input-group {
+          display: flex;
+          gap: 10px;
+        }
+
+        .input-group input {
+          flex: 1;
+        }
+
+        #share-btn {
+  margin-bottom: 10px;
+  padding: 8px 16px;
+  background-color: #ffc107;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#share-btn:hover {
+  background-color: #e0a800;
+}
+
+    </style>
+</head>
+<body>
+
+<div class="centered" id="usernamePage">
+    <h2>Join Room: <span id="roomNameDisplay"></span></h2>
+    <input type="text" id="name" placeholder="Enter your name" required />
+    <button onclick="connectToRoom()">Join</button>
+</div>
+
+<div class="centered hidden" id="chatPage">
+    <button id="share-btn">🔗 Share Room Link</button>
+    <span id="share-msg" style="margin-left: 10px; color: green;"></span>
+    <h2>Room: <span id="roomTitle"></span></h2>
+    <ul class="messages" id="messages"></ul>
+    <form id="chat-form" class="input-group">
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" />
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script>
+    let stompClient = null;
+    let username = null;
+    let room = window.location.pathname.split("/").pop(); // /chat/{roomname}
+
+    document.getElementById("roomNameDisplay").textContent = room;
+    document.getElementById("roomTitle").textContent = room;
+
+document.getElementById("share-btn").addEventListener("click", () => {
+    const url = window.location.href;
+
+    navigator.clipboard.writeText(url).then(() => {
+        const msg = document.getElementById("share-msg");
+        msg.textContent = "Room link copied!";
+        setTimeout(() => msg.textContent = "", 3000);
+    }).catch(err => {
+        alert("Failed to copy the link. Please copy it manually.");
+        console.error("Clipboard error:", err);
+    });
+});
+
+
+    const chatPage = document.getElementById("chatPage");
+    const usernamePage = document.getElementById("usernamePage");
+    const messageInput = document.getElementById("message-input");
+    const messageList = document.getElementById("messages");
+    const chatForm = document.getElementById("chat-form");
+
+    function connectToRoom() {
+      username = document.getElementById("name").value.trim();
+      if (!username) return;
+
+      const socket = new SockJS('/ws');
+      stompClient = Stomp.over(socket);
+
+      stompClient.connect({}, function () {
+        usernamePage.classList.add("hidden");
+        chatPage.classList.remove("hidden");
+
+        stompClient.subscribe(`/topic/${room}`, onMessageReceived);
+
+        stompClient.send(`/app/chat/${room}/addUser`, {}, JSON.stringify({
+          sender: username,
+          type: "JOIN"
+        }));
+      }, function (error) {
+        alert("Could not connect to WebSocket server. Please refresh.");
+        console.error(error);
+      });
+    }
+
+    chatForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const content = messageInput.value.trim();
+      if (content && stompClient) {
+        stompClient.send(`/app/chat/${room}/sendMessage`, {}, JSON.stringify({
+          sender: username,
+          content: content,
+          type: "CHAT"
+        }));
+        messageInput.value = "";
+      }
+    });
+
+    function onMessageReceived(payload) {
+      const message = JSON.parse(payload.body);
+      const messageElement = document.createElement("li");
+
+      if (message.type === "JOIN") {
+        messageElement.classList.add("event-message");
+        messageElement.textContent = `${message.sender} joined the room`;
+      } else if (message.type === "LEAVE") {
+        messageElement.classList.add("event-message");
+        messageElement.textContent = `${message.sender} left the room`;
+      } else {
+        messageElement.classList.add("chat-message");
+        messageElement.innerHTML = `<strong>${message.sender}:</strong> ${message.content}`;
+      }
+
+      messageList.appendChild(messageElement);
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
